@@ -1,0 +1,96 @@
+import readchar
+import threading
+import time
+import os
+import random
+
+board = []
+for i in range(10):
+  board.append(["."] * 10)
+
+game_over = False
+
+def printBoard():
+  for i in range(10):
+    for j in range(10):
+      print(board[i][j], end=" ")
+    print("")
+
+key = "None"
+previous_valid = "d"
+snake_squares = [(0, 4), (1, 4), (2, 4)]
+pending_actions = []
+def get_key():
+  global key
+  global previous_valid
+  global game_over
+  global snake_squares
+  #print("k we here:", key, previous_valid)
+  while not game_over:
+    #print("now we here:", key, previous_valid)
+    allowed = ["a", "s", "d", "w"]
+    if previous_valid == "a":
+      allowed.remove("d")
+    elif previous_valid == "s":
+      allowed.remove("w")
+    elif previous_valid == "d":
+      allowed.remove("a")
+    elif previous_valid == "w":
+      allowed.remove("s")
+    else:
+      raise Exception("Somethings wrong, I can feel it. key:", key, "previous_valid:", previous_valid, "snake_squares:", snake_squares)
+    while key not in allowed and not game_over:
+      #print("and now we here:", key, previous_valid)
+      key = readchar.readchar()
+    if key != previous_valid:
+      previous_valid = key
+      pending_actions.append(previous_valid)
+    key = "None"
+def run_game():
+  global key
+  global previous_valid
+  global game_over
+  global snake_squares
+  x = snake_squares[-1][0]
+  y = snake_squares[-1][1]
+  for square in snake_squares:
+    board[square[1]][square[0]] = "∧"
+  food_x = 5
+  food_y = 5
+  board[food_y][food_x] = "o"
+  just_ate = False
+  while not game_over:
+    os.system("clear")
+    printBoard()
+    #print("stuff:", key, previous_valid)
+    time.sleep(0.5)
+    TARGET_ACTION = previous_valid if pending_actions == [] else pending_actions.pop(0)
+    if TARGET_ACTION == "a":
+      x -= 1
+    elif TARGET_ACTION == "d":
+      x += 1
+    elif TARGET_ACTION == "w":
+      y -= 1
+    elif TARGET_ACTION == "s":
+      y += 1
+    if x < 0 or x > 9 or y < 0 or y > 9 or tuple((x, y)) in snake_squares:
+      game_over = True
+      break
+    if not just_ate:
+      board[snake_squares[0][1]][snake_squares[0][0]] = "."
+      del snake_squares[0]
+    just_ate = False
+    board[y][x] = "∧"
+    snake_squares.append(tuple((x, y)))
+    if x == food_x and y == food_y:
+      just_ate = True
+      food_x, food_y = snake_squares[0]
+      while tuple((food_x, food_y)) in snake_squares:
+        food_x, food_y = random.randint(0, 9), random.randint(0, 9)
+      board[food_y][food_x] = "o"
+  print(f"{'Game over!' if len(snake_squares) < 100 else 'Wow, you actually ... won?'} Your score was {len(snake_squares)-2}")
+t1 = threading.Thread(target=get_key)
+t2 = threading.Thread(target=run_game)
+input("Press enter to start")
+t1.start()
+t2.start()
